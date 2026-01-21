@@ -1,0 +1,17 @@
+{
+  "extends": "@adobe/eslint-config-aio-lib-config",
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "overrides": [
+    {
+      "files": [
+        "test/**/*.js"
+      ],
+      "rules": {
+        "node/no-unpublished-import": "off"
+      }
+    }
+  ]
+}
+

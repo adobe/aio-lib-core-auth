@@ -1,0 +1,59 @@
+{
+  "name": "@adobe/aio-lib-core-auth",
+  "version": "1.0.0",
+  "description": "Adobe I/O Core Authentication Library",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "types.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./types.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "lint": "eslint src test",
+    "generate-docs": "jsdoc2md src/*.js > doc/api.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adobe/aio-lib-core-auth"
+  },
+  "keywords": [
+    "adobe",
+    "adobe-io",
+    "aio",
+    "aio-lib",
+    "aio-lib-core",
+    "aio-sdk-core",
+    "authentication",
+    "auth"
+  ],
+  "author": "Adobe Inc.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/adobe/aio-lib-core-auth/issues"
+  },
+  "homepage": "https://github.com/adobe/aio-lib-core-auth#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@adobe/eslint-config-aio-lib-config": "^3.0.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsdoc": "^42.0.0",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "jsdoc-to-markdown": "^8.0.0",
+    "stdout-stderr": "^0.1.13",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@adobe/aio-lib-core-errors": "^4.0.0",
+    "@isaacs/ttlcache": "^1.4.1"
+  }
+}
