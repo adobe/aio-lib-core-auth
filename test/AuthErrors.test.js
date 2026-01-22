@@ -10,7 +10,7 @@ governing permissions and limitations under the License.
 */
 
 import { describe, test, expect } from 'vitest'
-import { codes, messages } from '../src/AuthErrors.js'
+import { codes, messages } from '../src/errors.js'
 
 describe('AuthErrors', () => {
   test('codes object is defined', () => {

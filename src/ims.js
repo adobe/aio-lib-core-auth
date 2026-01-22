@@ -9,7 +9,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { codes } from './AuthErrors.js'
+import { codes } from './errors.js'
 
 /**
  * IMS Base URLs
@@ -32,18 +32,44 @@ function getImsUrl (environment) {
  * Validates required parameters for client credentials flow
  *
  * @private
- * @param {object} params - Parameters to validate
- * @param {string} params.clientId - The client ID
- * @param {string} params.clientSecret - The client secret
- * @param {string} params.orgId - The organization ID
- * @param {string[]} params.scopes - Array of scopes
+ * @param {object} credentials - Parameters to validate
  * @throws {Error} If any required parameters are missing
  */
-function validateClientCredentialsParams ({ clientId, clientSecret, orgId, scopes }) {
+function getAndValidateCredentials (credentials) {
+  if (typeof credentials === 'object' && credentials !== null && !isArray(credentials)) {
+    // copy object (first level), to avoid side effects
+    credentials = { ...credentials }
+  } else {
+    throw new codes.BAD_CREDENTIALS_FORMAT({
+      sdkDetails: { credentialsType: typeof credentials }
+    })
+  }
+
+  // sugar: support both the ims API compatible variant and JS camelCase
+  if (credentials.client_id) {
+    credentials.clientId = credentials.client_id
+    delete credentials.client_id
+  }
+  if (credentials.org_id) {
+    credentials.orgId = credentials.org_id
+    delete credentials.org_id
+  }
+  if (credentials.client_secret) {
+    credentials.clientSecret = credentials.client_secret
+    delete credentials.client_secret
+  }
+
+  const { clientId, clientSecret, orgId, scopes } = credentials
   const missingParams = []
-  if (!clientId) missingParams.push('clientId')
-  if (!clientSecret) missingParams.push('clientSecret')
-  if (!orgId) missingParams.push('orgId')
+  if (!clientId) {
+    missingParams.push('clientId')
+  }
+  if (!clientSecret) {
+    missingParams.push('clientSecret')
+  }
+  if (!orgId) {
+    missingParams.push('orgId')
+  }
 
   if (missingParams.length > 0) {
     throw new codes.MISSING_PARAMETERS({
@@ -65,7 +91,7 @@ function validateClientCredentialsParams ({ clientId, clientSecret, orgId, scope
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], environment = 'prod' }) {
+export async function getAccessTokenByClientCredentials (credentials, env ) {
   validateClientCredentialsParams({ clientId, clientSecret, orgId, scopes })
 
   const imsBaseUrl = getImsUrl(environment)
