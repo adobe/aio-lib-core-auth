@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
 import TTLCache from '@isaacs/ttlcache'
 import crypto from 'crypto'
+import { IMS_ENV_INPUT, IMS_OAUTH_S2S_INPUT } from './constants.js'
 
 // Token cache with TTL
 // Opinionated for now, we could make it configurable in the future if needed -mg
@@ -54,7 +55,14 @@ export function invalidateCache () {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function generateAccessToken (params, imsEnv = 'prod' ) {
+export async function generateAccessToken (params, imsEnv) {
+  // integrate with the runtime environment and include-ims-credentials annotation
+  if (params?.[IMS_OAUTH_S2S_INPUT]) {
+    imsEnv = imsEnv || params[IMS_ENV_INPUT]
+    params = params[IMS_OAUTH_S2S_INPUT]
+  }
+  imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || 'prod'
+
   const credentials = getAndValidateCredentials(params)
 
   const credAndEnv = { ...credentials, env: imsEnv }

@@ -966,6 +966,192 @@ describe('generateAccessToken - imsEnv parameter', () => {
   })
 })
 
+describe('generateAccessToken - include-ims-credentials annotation support', () => {
+  const validCredentials = {
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+    orgId: 'test-org-id',
+    scopes: ['openid']
+  }
+
+  const mockSuccessResponse = {
+    access_token: 'test-access-token',
+    token_type: 'bearer',
+    expires_in: 86399
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invalidateCache()
+  })
+
+  test('extracts credentials from __ims_oauth_s2s property when present', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      __ims_oauth_s2s: validCredentials,
+      someOtherProperty: 'ignored'
+    }
+
+    const result = await generateAccessToken(params)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    
+    const callArgs = fetch.mock.calls[0][1]
+    const body = callArgs.body
+    expect(body).toContain('client_id=test-client-id')
+    expect(body).toContain('client_secret=test-client-secret')
+    expect(body).toContain('org_id=test-org-id')
+  })
+
+  test('uses __ims_env from params when imsEnv argument is not provided', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      ...validCredentials,
+      __ims_env: 'stage'
+    }
+
+    await generateAccessToken(params)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('explicit imsEnv argument takes precedence over __ims_env in params', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      ...validCredentials,
+      __ims_env: 'stage'
+    }
+
+    await generateAccessToken(params, 'prod')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('supports both __ims_oauth_s2s and __ims_env together', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      __ims_oauth_s2s: validCredentials,
+      __ims_env: 'stage'
+    }
+
+    const result = await generateAccessToken(params)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('defaults to prod when no imsEnv argument and no __ims_env in params', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validCredentials)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('uses credentials directly when __ims_oauth_s2s is not present', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const result = await generateAccessToken(validCredentials)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  test('caches correctly with __ims_oauth_s2s params', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      __ims_oauth_s2s: validCredentials,
+      __ims_env: 'prod'
+    }
+
+    // First call - should fetch
+    await generateAccessToken(params)
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    // Second call with same params - should use cache
+    await generateAccessToken(params)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  test('different __ims_env values result in different cache entries', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const paramsStage = {
+      __ims_oauth_s2s: validCredentials,
+      __ims_env: 'stage'
+    }
+
+    const paramsProd = {
+      __ims_oauth_s2s: validCredentials,
+      __ims_env: 'prod'
+    }
+
+    await generateAccessToken(paramsStage)
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    await generateAccessToken(paramsProd)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('generateAccessToken - BAD_CREDENTIALS_FORMAT error', () => {
   test('throws BAD_CREDENTIALS_FORMAT when params is null', async () => {
     await expect(generateAccessToken(null))
