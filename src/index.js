@@ -11,6 +11,7 @@ governing permissions and limitations under the License.
 
 import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
 import TTLCache from '@isaacs/ttlcache'
+import crypto from 'crypto'
 
 // Token cache with TTL
 // Opinionated for now, we could make it configurable in the future if needed -mg

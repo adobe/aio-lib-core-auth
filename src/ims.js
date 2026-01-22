@@ -43,6 +43,12 @@ export function getAndValidateCredentials (params) {
     })
   }
 
+  if (params.scopes && !Array.isArray(params.scopes)) {
+    throw new codes.BAD_SCOPES_FORMAT({
+      sdkDetails: { scopesType: typeof params.scopes }
+    })
+  }
+
   const credentials = {}
   credentials.clientId = params.clientId || params.client_id
   credentials.clientSecret = params.clientSecret || params.client_secret
