@@ -21,43 +21,33 @@ const IMS_BASE_URL_STAGE = 'https://ims-na1-stg1.adobelogin.com'
  * Gets the IMS base URL based on the environment
  *
  * @private
- * @param {string} environment - The environment ('prod' or 'stage')
+ * @param {string} env - The environment ('prod' or 'stage')
  * @returns {string} The IMS base URL
  */
-function getImsUrl (environment) {
-  return environment === 'stage' ? IMS_BASE_URL_STAGE : IMS_BASE_URL_PROD
+function getImsUrl (env) {
+  return env === 'stage' ? IMS_BASE_URL_STAGE : IMS_BASE_URL_PROD
 }
 
 /**
  * Validates required parameters for client credentials flow
  *
  * @private
- * @param {object} credentials - Parameters to validate
+ * @param {object} params - Parameters to validate
+ * @returns {object} Validated credentials object
  * @throws {Error} If any required parameters are missing
  */
-function getAndValidateCredentials (credentials) {
-  if (typeof credentials === 'object' && credentials !== null && !isArray(credentials)) {
-    // copy object (first level), to avoid side effects
-    credentials = { ...credentials }
-  } else {
+export function getAndValidateCredentials (params) {
+  if (!(typeof params === 'object' && params !== null && !Array.isArray(params))) {
     throw new codes.BAD_CREDENTIALS_FORMAT({
-      sdkDetails: { credentialsType: typeof credentials }
+      sdkDetails: { paramsType: typeof params }
     })
   }
 
-  // sugar: support both the ims API compatible variant and JS camelCase
-  if (credentials.client_id) {
-    credentials.clientId = credentials.client_id
-    delete credentials.client_id
-  }
-  if (credentials.org_id) {
-    credentials.orgId = credentials.org_id
-    delete credentials.org_id
-  }
-  if (credentials.client_secret) {
-    credentials.clientSecret = credentials.client_secret
-    delete credentials.client_secret
-  }
+  const credentials = {}
+  credentials.clientId = params.clientId || params.client_id
+  credentials.clientSecret = params.clientSecret || params.client_secret
+  credentials.orgId = params.orgId || params.org_id
+  credentials.scopes = params.scopes || []
 
   const { clientId, clientSecret, orgId, scopes } = credentials
   const missingParams = []
@@ -77,6 +67,8 @@ function getAndValidateCredentials (credentials) {
       sdkDetails: { clientId, orgId, scopes }
     })
   }
+
+  return credentials
 }
 
 /**
@@ -91,10 +83,8 @@ function getAndValidateCredentials (credentials) {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function getAccessTokenByClientCredentials (credentials, env ) {
-  validateClientCredentialsParams({ clientId, clientSecret, orgId, scopes })
-
-  const imsBaseUrl = getImsUrl(environment)
+export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
+  const imsBaseUrl = getImsUrl(env)
 
   // Prepare form data using URLSearchParams (native Node.js)
   const formData = new URLSearchParams()
