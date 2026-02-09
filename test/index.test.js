@@ -966,7 +966,7 @@ describe('generateAccessToken - imsEnv parameter', () => {
   })
 })
 
-describe('generateAccessToken - include-ims-credentials annotation support', () => {
+describe('generateAccessToken - __ims_env param support', () => {
   const validCredentials = {
     clientId: 'test-client-id',
     clientSecret: 'test-client-secret',
@@ -983,31 +983,6 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
   beforeEach(() => {
     vi.clearAllMocks()
     invalidateCache()
-  })
-
-  test('extracts credentials from __ims_oauth_s2s property when present', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: createMockHeaders(),
-      json: async () => mockSuccessResponse
-    })
-
-    const params = {
-      __ims_oauth_s2s: validCredentials,
-      someOtherProperty: 'ignored'
-    }
-
-    const result = await generateAccessToken(params)
-
-    expect(result).toEqual(mockSuccessResponse)
-    expect(fetch).toHaveBeenCalledTimes(1)
-    
-    const callArgs = fetch.mock.calls[0][1]
-    const body = callArgs.body
-    expect(body).toContain('client_id=test-client-id')
-    expect(body).toContain('client_secret=test-client-secret')
-    expect(body).toContain('org_id=test-org-id')
   })
 
   test('uses __ims_env from params when imsEnv argument is not provided', async () => {
@@ -1051,8 +1026,37 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
       expect.any(Object)
     )
   })
+})
 
-  test('supports both __ims_oauth_s2s and __ims_env together', async () => {
+describe('generateAccessToken - IO Runtime stage namespace auto-detection', () => {
+  const validCredentials = {
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+    orgId: 'test-org-id',
+    scopes: ['openid']
+  }
+
+  const mockSuccessResponse = {
+    access_token: 'test-access-token',
+    token_type: 'bearer',
+    expires_in: 86399
+  }
+
+  const originalEnv = process.env
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invalidateCache()
+    process.env = { ...originalEnv }
+  })
+
+  afterEach(() => {
+    process.env = originalEnv
+  })
+
+  test('defaults to stage when __OW_NAMESPACE starts with development-', async () => {
+    process.env.__OW_NAMESPACE = 'development-my-project'
+    
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -1060,21 +1064,17 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
       json: async () => mockSuccessResponse
     })
 
-    const params = {
-      __ims_oauth_s2s: validCredentials,
-      __ims_env: 'stage'
-    }
+    await generateAccessToken(validCredentials)
 
-    const result = await generateAccessToken(params)
-
-    expect(result).toEqual(mockSuccessResponse)
     expect(fetch).toHaveBeenCalledWith(
       'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
       expect.any(Object)
     )
   })
 
-  test('defaults to prod when no imsEnv argument and no __ims_env in params', async () => {
+  test('defaults to prod when __OW_NAMESPACE does not start with development-', async () => {
+    process.env.__OW_NAMESPACE = 'production-my-project'
+    
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -1090,7 +1090,9 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
     )
   })
 
-  test('uses credentials directly when __ims_oauth_s2s is not present', async () => {
+  test('defaults to prod when __OW_NAMESPACE is not set', async () => {
+    delete process.env.__OW_NAMESPACE
+    
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -1098,14 +1100,36 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
       json: async () => mockSuccessResponse
     })
 
-    const result = await generateAccessToken(validCredentials)
+    await generateAccessToken(validCredentials)
 
-    expect(result).toEqual(mockSuccessResponse)
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
   })
 
-  test('caches correctly with __ims_oauth_s2s params', async () => {
-    fetch.mockResolvedValue({
+  test('explicit imsEnv argument takes precedence over __OW_NAMESPACE auto-detection', async () => {
+    process.env.__OW_NAMESPACE = 'development-my-project'
+    
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validCredentials, 'prod')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('__ims_env param takes precedence over __OW_NAMESPACE auto-detection', async () => {
+    process.env.__OW_NAMESPACE = 'development-my-project'
+
+    fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: createMockHeaders(),
@@ -1113,42 +1137,16 @@ describe('generateAccessToken - include-ims-credentials annotation support', () 
     })
 
     const params = {
-      __ims_oauth_s2s: validCredentials,
+      ...validCredentials,
       __ims_env: 'prod'
     }
 
-    // First call - should fetch
     await generateAccessToken(params)
-    expect(fetch).toHaveBeenCalledTimes(1)
 
-    // Second call with same params - should use cache
-    await generateAccessToken(params)
-    expect(fetch).toHaveBeenCalledTimes(1)
-  })
-
-  test('different __ims_env values result in different cache entries', async () => {
-    fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: createMockHeaders(),
-      json: async () => mockSuccessResponse
-    })
-
-    const paramsStage = {
-      __ims_oauth_s2s: validCredentials,
-      __ims_env: 'stage'
-    }
-
-    const paramsProd = {
-      __ims_oauth_s2s: validCredentials,
-      __ims_env: 'prod'
-    }
-
-    await generateAccessToken(paramsStage)
-    expect(fetch).toHaveBeenCalledTimes(1)
-
-    await generateAccessToken(paramsProd)
-    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
   })
 })
 

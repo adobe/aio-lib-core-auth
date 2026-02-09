@@ -57,11 +57,7 @@ export function invalidateCache () {
  */
 export async function generateAccessToken (params, imsEnv) {
   // integrate with the runtime environment and include-ims-credentials annotation
-  if (params?.[IMS_OAUTH_S2S_INPUT]) {
-    imsEnv = imsEnv || params[IMS_ENV_INPUT]
-    params = params[IMS_OAUTH_S2S_INPUT]
-  }
-  imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || 'prod'
+  imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
 
   const credentials = getAndValidateCredentials(params)
 
@@ -81,4 +77,9 @@ export async function generateAccessToken (params, imsEnv) {
   tokenCache.set(cacheKey, token)
 
   return token
+}
+
+
+function ioRuntimeStageNamespace () {
+  return process.env.__OW_NAMESPACE && process.env.__OW_NAMESPACE.startsWith('development-')
 }
