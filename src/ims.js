@@ -128,7 +128,8 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
           xDebugId,
           clientId,
           orgId,
-          scopes
+          scopes,
+          imsEnv: env
         }
       })
     }
@@ -147,7 +148,8 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
         originalError: error.message,
         clientId,
         orgId,
-        scopes
+        scopes,
+        imsEnv: env
       }
     })
   }

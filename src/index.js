@@ -10,7 +10,7 @@ governing permissions and limitations under the License.
 */
 
 import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
-import TTLCache from '@isaacs/ttlcache'
+import { TTLCache } from '@isaacs/ttlcache'
 import crypto from 'crypto'
 import { IMS_ENV_INPUT, IMS_OAUTH_S2S_INPUT } from './constants.js'
 
@@ -51,7 +51,7 @@ export function invalidateCache () {
  * @param {string} params.clientSecret - The client secret
  * @param {string} params.orgId - The organization ID
  * @param {string[]} [params.scopes=[]] - Array of scopes to request
- * @param {string} [imsEnv='prod'] - The IMS environment ('prod' or 'stage')
+ * @param {string} [imsEnv] - The IMS environment ('prod' or 'stage'); when omitted or falsy, uses stage if __OW_NAMESPACE starts with 'development-', else prod
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
@@ -78,7 +78,6 @@ export async function generateAccessToken (params, imsEnv) {
 
   return token
 }
-
 
 function ioRuntimeStageNamespace () {
   return process.env.__OW_NAMESPACE && process.env.__OW_NAMESPACE.startsWith('development-')

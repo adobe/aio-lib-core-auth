@@ -8,7 +8,9 @@
   "exports": {
     ".": {
       "import": "./src/index.js",
-      "types": "./types.d.ts"
+      "types": "./types.d.ts",
+      "require": "./src/index.js",
+      "default": "./src/index.js"
     }
   },
   "scripts": {
@@ -54,6 +56,6 @@
   },
   "dependencies": {
     "@adobe/aio-lib-core-errors": "^4.0.0",
-    "@isaacs/ttlcache": "^1.4.1"
+    "@isaacs/ttlcache": "^2.1.4"
   }
 }
