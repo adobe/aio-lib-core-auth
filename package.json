@@ -54,6 +54,6 @@
   },
   "dependencies": {
     "@adobe/aio-lib-core-errors": "^4.0.0",
-    "@isaacs/ttlcache": "^1.4.1"
+    "@isaacs/ttlcache": "^2.1.4"
   }
 }
