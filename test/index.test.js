@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import { generateAccessToken, invalidateCache } from '../src/index.js'
 import { codes } from '../src/errors.js'
+import { IMS_OAUTH_S2S_INPUT } from '../src/constants.js'
 
 // Mock fetch globally
 global.fetch = vi.fn()
@@ -59,6 +60,63 @@ describe('generateAccessToken', () => {
 
   test('throws same errors as getAccessTokenByClientCredentials', async () => {
     await expect(generateAccessToken({}))
+      .rejects
+      .toThrow(codes.MISSING_PARAMETERS)
+  })
+})
+
+describe('generateAccessToken - include-ims-credentials annotation', () => {
+  const annotationCredentials = {
+    clientId: 'annotation-client-id',
+    clientSecret: 'annotation-client-secret',
+    orgId: 'annotation-org-id',
+    scopes: ['openid']
+  }
+
+  const mockSuccessResponse = {
+    access_token: 'annotation-access-token',
+    token_type: 'bearer',
+    expires_in: 86399
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invalidateCache()
+  })
+
+  test('uses credentials from __ims_oauth_s2s when params has no credentials', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = {
+      [IMS_OAUTH_S2S_INPUT]: annotationCredentials
+    }
+
+    const result = await generateAccessToken(params)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    const callArgs = fetch.mock.calls[0][1]
+    expect(callArgs.body).toContain('client_id=annotation-client-id')
+    expect(callArgs.body).toContain('org_id=annotation-org-id')
+  })
+
+  test('throws params error when __ims_oauth_s2s is missing and params has no credentials', async () => {
+    await expect(generateAccessToken({}))
+      .rejects
+      .toThrow(codes.MISSING_PARAMETERS)
+  })
+
+  test('throws params error when __ims_oauth_s2s has invalid credentials', async () => {
+    const params = {
+      [IMS_OAUTH_S2S_INPUT]: { clientId: 'only-id' }
+    }
+
+    await expect(generateAccessToken(params))
       .rejects
       .toThrow(codes.MISSING_PARAMETERS)
   })

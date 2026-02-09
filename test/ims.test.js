@@ -374,7 +374,8 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
-    expect(result).toEqual({
+    expect(result.error).toBeNull()
+    expect(result.credentials).toEqual({
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
       orgId: 'test-org-id',
@@ -392,7 +393,8 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
-    expect(result).toEqual({
+    expect(result.error).toBeNull()
+    expect(result.credentials).toEqual({
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
       orgId: 'test-org-id',
@@ -412,9 +414,10 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
-    expect(result.clientId).toBe('camel-client-id')
-    expect(result.clientSecret).toBe('camel-secret')
-    expect(result.orgId).toBe('camel-org-id')
+    expect(result.error).toBeNull()
+    expect(result.credentials.clientId).toBe('camel-client-id')
+    expect(result.credentials.clientSecret).toBe('camel-secret')
+    expect(result.credentials.orgId).toBe('camel-org-id')
   })
 
   test('defaults scopes to empty array when not provided', () => {
@@ -426,89 +429,94 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
-    expect(result.scopes).toEqual([])
+    expect(result.error).toBeNull()
+    expect(result.credentials.scopes).toEqual([])
   })
 
-  test('throws BAD_CREDENTIALS_FORMAT when params is null', () => {
-    expect(() => getAndValidateCredentials(null))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  test('returns BAD_CREDENTIALS_FORMAT error when params is null', () => {
+    const result = getAndValidateCredentials(null)
 
-    let error
-    try {
-      getAndValidateCredentials(null)
-    } catch (e) {
-      error = e
-    }
-    expect(error.name).toBe('AuthSDKError')
-    expect(error.code).toBe('BAD_CREDENTIALS_FORMAT')
+    expect(result.error).toBeDefined()
+    expect(result.error.name).toBe('AuthSDKError')
+    expect(result.error.code).toBe('BAD_CREDENTIALS_FORMAT')
   })
 
-  test('throws BAD_CREDENTIALS_FORMAT when params is undefined', () => {
-    expect(() => getAndValidateCredentials(undefined))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  test('returns BAD_CREDENTIALS_FORMAT error when params is undefined', () => {
+    const result = getAndValidateCredentials(undefined)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_CREDENTIALS_FORMAT')
   })
 
-  test('throws BAD_CREDENTIALS_FORMAT when params is an array', () => {
-    expect(() => getAndValidateCredentials(['test']))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  test('returns BAD_CREDENTIALS_FORMAT error when params is an array', () => {
+    const result = getAndValidateCredentials(['test'])
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_CREDENTIALS_FORMAT')
   })
 
-  test('throws BAD_CREDENTIALS_FORMAT when params is a string', () => {
-    expect(() => getAndValidateCredentials('test'))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  test('returns BAD_CREDENTIALS_FORMAT error when params is a string', () => {
+    const result = getAndValidateCredentials('test')
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_CREDENTIALS_FORMAT')
   })
 
-  test('throws BAD_CREDENTIALS_FORMAT when params is a number', () => {
-    expect(() => getAndValidateCredentials(123))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  test('returns BAD_CREDENTIALS_FORMAT error when params is a number', () => {
+    const result = getAndValidateCredentials(123)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_CREDENTIALS_FORMAT')
   })
 
-  test('throws MISSING_PARAMETERS when clientId is missing', () => {
+  test('returns MISSING_PARAMETERS error when clientId is missing', () => {
     const params = {
       clientSecret: 'test-client-secret',
       orgId: 'test-org-id'
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+    const result = getAndValidateCredentials(params)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('MISSING_PARAMETERS')
   })
 
-  test('throws MISSING_PARAMETERS when clientSecret is missing', () => {
+  test('returns MISSING_PARAMETERS error when clientSecret is missing', () => {
     const params = {
       clientId: 'test-client-id',
       orgId: 'test-org-id'
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+    const result = getAndValidateCredentials(params)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('MISSING_PARAMETERS')
   })
 
-  test('throws MISSING_PARAMETERS when orgId is missing', () => {
+  test('returns MISSING_PARAMETERS error when orgId is missing', () => {
     const params = {
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret'
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+    const result = getAndValidateCredentials(params)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('MISSING_PARAMETERS')
   })
 
-  test('throws MISSING_PARAMETERS with all missing params listed', () => {
-    let error
-    try {
-      getAndValidateCredentials({})
-    } catch (e) {
-      error = e
-    }
+  test('returns MISSING_PARAMETERS with all missing params listed', () => {
+    const result = getAndValidateCredentials({})
 
-    expect(error.name).toBe('AuthSDKError')
-    expect(error.code).toBe('MISSING_PARAMETERS')
-    expect(error.message).toContain('clientId')
-    expect(error.message).toContain('clientSecret')
-    expect(error.message).toContain('orgId')
+    expect(result.error).toBeDefined()
+    expect(result.error.name).toBe('AuthSDKError')
+    expect(result.error.code).toBe('MISSING_PARAMETERS')
+    expect(result.error.message).toContain('clientId')
+    expect(result.error.message).toContain('clientSecret')
+    expect(result.error.message).toContain('orgId')
   })
 
-  test('throws BAD_SCOPES_FORMAT when scopes is a string', () => {
+  test('returns BAD_SCOPES_FORMAT error when scopes is a string', () => {
     const params = {
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
@@ -516,21 +524,15 @@ describe('getAndValidateCredentials', () => {
       scopes: 'openid'
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+    const result = getAndValidateCredentials(params)
 
-    let error
-    try {
-      getAndValidateCredentials(params)
-    } catch (e) {
-      error = e
-    }
-    expect(error.name).toBe('AuthSDKError')
-    expect(error.code).toBe('BAD_SCOPES_FORMAT')
-    expect(error.sdkDetails.scopesType).toBe('string')
+    expect(result.error).toBeDefined()
+    expect(result.error.name).toBe('AuthSDKError')
+    expect(result.error.code).toBe('BAD_SCOPES_FORMAT')
+    expect(result.error.sdkDetails.scopesType).toBe('string')
   })
 
-  test('throws BAD_SCOPES_FORMAT when scopes is an object', () => {
+  test('returns BAD_SCOPES_FORMAT error when scopes is an object', () => {
     const params = {
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
@@ -538,11 +540,13 @@ describe('getAndValidateCredentials', () => {
       scopes: { scope: 'openid' }
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+    const result = getAndValidateCredentials(params)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_SCOPES_FORMAT')
   })
 
-  test('throws BAD_SCOPES_FORMAT when scopes is a number', () => {
+  test('returns BAD_SCOPES_FORMAT error when scopes is a number', () => {
     const params = {
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
@@ -550,8 +554,10 @@ describe('getAndValidateCredentials', () => {
       scopes: 123
     }
 
-    expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+    const result = getAndValidateCredentials(params)
+
+    expect(result.error).toBeDefined()
+    expect(result.error.code).toBe('BAD_SCOPES_FORMAT')
   })
 
   test('accepts scopes as an array', () => {
@@ -563,6 +569,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     const result = getAndValidateCredentials(params)
-    expect(result.scopes).toEqual(['openid', 'profile'])
+    expect(result.error).toBeNull()
+    expect(result.credentials.scopes).toEqual(['openid', 'profile'])
   })
 })

@@ -58,8 +58,19 @@ export function invalidateCache () {
 export async function generateAccessToken (params, imsEnv) {
   // integrate with the runtime environment and include-ims-credentials annotation
   imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
- 
-  const credentials = getAndValidateCredentials(params)
+
+  let credentials
+
+  // get parameters from params in priority otherwise try to load the credentials set to params.__ims_oauth_s2s by the annotation
+  const fromParams = getAndValidateCredentials(params)
+  credentials = fromParams.credentials
+  if (fromParams.error) {
+    const fromAnnotation = getAndValidateCredentials(params?.[IMS_OAUTH_S2S_INPUT])
+    if (fromAnnotation.error) {
+      throw fromParams.error // still throw original error
+    }
+    credentials = fromAnnotation.credentials
+  }
 
   const credAndEnv = { ...credentials, env: imsEnv }
 
