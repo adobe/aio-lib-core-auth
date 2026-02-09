@@ -58,7 +58,7 @@ export function invalidateCache () {
 export async function generateAccessToken (params, imsEnv) {
   // integrate with the runtime environment and include-ims-credentials annotation
   imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
-
+ 
   const credentials = getAndValidateCredentials(params)
 
   const credAndEnv = { ...credentials, env: imsEnv }
