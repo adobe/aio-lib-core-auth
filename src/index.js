@@ -10,7 +10,7 @@ governing permissions and limitations under the License.
 */
 
 import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
-import TTLCache from '@isaacs/ttlcache'
+import { TTLCache } from '@isaacs/ttlcache'
 import crypto from 'crypto'
 
 // Token cache with TTL
