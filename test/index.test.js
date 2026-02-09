@@ -11,8 +11,8 @@ governing permissions and limitations under the License.
 
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 import { generateAccessToken, invalidateCache } from '../src/index.js'
-import { getAccessTokenByClientCredentials } from '../src/ims.js'
-import { codes } from '../src/AuthErrors.js'
+import { getAccessTokenByClientCredentials, getAndValidateCredentials } from '../src/ims.js'
+import { codes } from '../src/errors.js'
 
 // Mock fetch globally
 global.fetch = vi.fn()
@@ -142,7 +142,7 @@ describe('getAccessTokenByClientCredentials', () => {
     )
   })
 
-  test('uses stage IMS URL when environment is stage', async () => {
+  test('uses stage IMS URL when env is stage', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -150,7 +150,7 @@ describe('getAccessTokenByClientCredentials', () => {
       json: async () => mockSuccessResponse
     })
 
-    await getAccessTokenByClientCredentials({ ...validParams, environment: 'stage' })
+    await getAccessTokenByClientCredentials({ ...validParams, env: 'stage' })
 
     expect(fetch).toHaveBeenCalledWith(
       'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
@@ -158,7 +158,7 @@ describe('getAccessTokenByClientCredentials', () => {
     )
   })
 
-  test('uses production IMS URL when environment is prod', async () => {
+  test('uses production IMS URL when env is prod', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -166,7 +166,7 @@ describe('getAccessTokenByClientCredentials', () => {
       json: async () => mockSuccessResponse
     })
 
-    await getAccessTokenByClientCredentials({ ...validParams, environment: 'prod' })
+    await getAccessTokenByClientCredentials({ ...validParams, env: 'prod' })
 
     expect(fetch).toHaveBeenCalledWith(
       'https://ims-na1.adobelogin.com/ims/token/v2',
@@ -174,7 +174,7 @@ describe('getAccessTokenByClientCredentials', () => {
     )
   })
 
-  test('uses production IMS URL for unknown environment values', async () => {
+  test('uses production IMS URL for unknown env values', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -182,55 +182,12 @@ describe('getAccessTokenByClientCredentials', () => {
       json: async () => mockSuccessResponse
     })
 
-    await getAccessTokenByClientCredentials({ ...validParams, environment: 'invalid' })
+    await getAccessTokenByClientCredentials({ ...validParams, env: 'invalid' })
 
     expect(fetch).toHaveBeenCalledWith(
       'https://ims-na1.adobelogin.com/ims/token/v2',
       expect.any(Object)
     )
-  })
-
-  test('throws MISSING_PARAMETERS error when clientId is missing', async () => {
-    const { clientId, ...paramsWithoutClientId } = validParams
-
-    await expect(getAccessTokenByClientCredentials(paramsWithoutClientId))
-      .rejects
-      .toThrow(codes.MISSING_PARAMETERS)
-  })
-
-  test('throws MISSING_PARAMETERS error when clientSecret is missing', async () => {
-    const { clientSecret, ...paramsWithoutClientSecret } = validParams
-
-    await expect(getAccessTokenByClientCredentials(paramsWithoutClientSecret))
-      .rejects
-      .toThrow(codes.MISSING_PARAMETERS)
-  })
-
-  test('throws MISSING_PARAMETERS error when orgId is missing', async () => {
-    const { orgId, ...paramsWithoutOrgId } = validParams
-
-    await expect(getAccessTokenByClientCredentials(paramsWithoutOrgId))
-      .rejects
-      .toThrow(codes.MISSING_PARAMETERS)
-  })
-
-  test('throws MISSING_PARAMETERS error with multiple missing params', async () => {
-    await expect(getAccessTokenByClientCredentials({ scopes: ['test'] }))
-      .rejects
-      .toThrow(codes.MISSING_PARAMETERS)
-
-    // Additional validation
-    let error
-    try {
-      await getAccessTokenByClientCredentials({ scopes: ['test'] })
-    } catch (e) {
-      error = e
-    }
-    expect(error.name).toBe('AuthSDKError')
-    expect(error.code).toBe('MISSING_PARAMETERS')
-    expect(error.message).toContain('clientId')
-    expect(error.message).toContain('clientSecret')
-    expect(error.message).toContain('orgId')
   })
 
   test('throws IMS_TOKEN_ERROR when API returns error response', async () => {
@@ -512,10 +469,10 @@ describe('generateAccessToken - with caching', () => {
       json: async () => mockSuccessResponse
     })
 
-    await generateAccessToken({ ...validParams, environment: 'prod' })
+    await generateAccessToken(validParams, 'prod')
     expect(fetch).toHaveBeenCalledTimes(1)
 
-    await generateAccessToken({ ...validParams, environment: 'stage' })
+    await generateAccessToken(validParams, 'stage')
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 
@@ -546,6 +503,22 @@ describe('generateAccessToken - with caching', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
 
     await generateAccessToken({ ...validParams, scopes: ['openid', 'profile'] })
+    expect(fetch).toHaveBeenCalledTimes(1) // Should use cache
+  })
+
+  test('empty scopes use same cache entry', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const paramsNoScopes = { ...validParams, scopes: [] }
+    await generateAccessToken(paramsNoScopes)
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    await generateAccessToken(paramsNoScopes)
     expect(fetch).toHaveBeenCalledTimes(1) // Should use cache
   })
 
@@ -599,5 +572,436 @@ describe('invalidateCache', () => {
 
   test('can be called without errors', () => {
     expect(() => invalidateCache()).not.toThrow()
+  })
+})
+
+describe('getAndValidateCredentials', () => {
+  test('is a function', () => {
+    expect(typeof getAndValidateCredentials).toBe('function')
+  })
+
+  test('validates and returns credentials with camelCase params', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: ['openid']
+    }
+
+    const result = getAndValidateCredentials(params)
+
+    expect(result).toEqual({
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: ['openid']
+    })
+  })
+
+  test('validates and returns credentials with snake_case params', () => {
+    const params = {
+      client_id: 'test-client-id',
+      client_secret: 'test-client-secret',
+      org_id: 'test-org-id',
+      scopes: ['openid']
+    }
+
+    const result = getAndValidateCredentials(params)
+
+    expect(result).toEqual({
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: ['openid']
+    })
+  })
+
+  test('prefers camelCase over snake_case when both are provided', () => {
+    const params = {
+      clientId: 'camel-client-id',
+      client_id: 'snake-client-id',
+      clientSecret: 'camel-secret',
+      client_secret: 'snake-secret',
+      orgId: 'camel-org-id',
+      org_id: 'snake-org-id'
+    }
+
+    const result = getAndValidateCredentials(params)
+
+    expect(result.clientId).toBe('camel-client-id')
+    expect(result.clientSecret).toBe('camel-secret')
+    expect(result.orgId).toBe('camel-org-id')
+  })
+
+  test('defaults scopes to empty array when not provided', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id'
+    }
+
+    const result = getAndValidateCredentials(params)
+
+    expect(result.scopes).toEqual([])
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is null', () => {
+    expect(() => getAndValidateCredentials(null))
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+
+    let error
+    try {
+      getAndValidateCredentials(null)
+    } catch (e) {
+      error = e
+    }
+    expect(error.name).toBe('AuthSDKError')
+    expect(error.code).toBe('BAD_CREDENTIALS_FORMAT')
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is undefined', () => {
+    expect(() => getAndValidateCredentials(undefined))
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is an array', () => {
+    expect(() => getAndValidateCredentials(['test']))
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is a string', () => {
+    expect(() => getAndValidateCredentials('test'))
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is a number', () => {
+    expect(() => getAndValidateCredentials(123))
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws MISSING_PARAMETERS when clientId is missing', () => {
+    const params = {
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id'
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.MISSING_PARAMETERS)
+  })
+
+  test('throws MISSING_PARAMETERS when clientSecret is missing', () => {
+    const params = {
+      clientId: 'test-client-id',
+      orgId: 'test-org-id'
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.MISSING_PARAMETERS)
+  })
+
+  test('throws MISSING_PARAMETERS when orgId is missing', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret'
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.MISSING_PARAMETERS)
+  })
+
+  test('throws MISSING_PARAMETERS with all missing params listed', () => {
+    let error
+    try {
+      getAndValidateCredentials({})
+    } catch (e) {
+      error = e
+    }
+
+    expect(error.name).toBe('AuthSDKError')
+    expect(error.code).toBe('MISSING_PARAMETERS')
+    expect(error.message).toContain('clientId')
+    expect(error.message).toContain('clientSecret')
+    expect(error.message).toContain('orgId')
+  })
+
+  test('throws BAD_SCOPES_FORMAT when scopes is a string', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: 'openid'
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.BAD_SCOPES_FORMAT)
+
+    let error
+    try {
+      getAndValidateCredentials(params)
+    } catch (e) {
+      error = e
+    }
+    expect(error.name).toBe('AuthSDKError')
+    expect(error.code).toBe('BAD_SCOPES_FORMAT')
+    expect(error.sdkDetails.scopesType).toBe('string')
+  })
+
+  test('throws BAD_SCOPES_FORMAT when scopes is an object', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: { scope: 'openid' }
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.BAD_SCOPES_FORMAT)
+  })
+
+  test('throws BAD_SCOPES_FORMAT when scopes is a number', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: 123
+    }
+
+    expect(() => getAndValidateCredentials(params))
+      .toThrow(codes.BAD_SCOPES_FORMAT)
+  })
+
+  test('accepts scopes as an array', () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: ['openid', 'profile']
+    }
+
+    const result = getAndValidateCredentials(params)
+    expect(result.scopes).toEqual(['openid', 'profile'])
+  })
+})
+
+describe('generateAccessToken - BAD_SCOPES_FORMAT error', () => {
+  test('throws BAD_SCOPES_FORMAT when scopes is a string', async () => {
+    const params = {
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      orgId: 'test-org-id',
+      scopes: 'openid'
+    }
+
+    await expect(generateAccessToken(params))
+      .rejects
+      .toThrow(codes.BAD_SCOPES_FORMAT)
+  })
+})
+
+describe('generateAccessToken - snake_case params support', () => {
+  const snakeCaseParams = {
+    client_id: 'test-client-id',
+    client_secret: 'test-client-secret',
+    org_id: 'test-org-id',
+    scopes: ['openid']
+  }
+
+  const mockSuccessResponse = {
+    access_token: 'test-access-token',
+    token_type: 'bearer',
+    expires_in: 86399
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invalidateCache()
+  })
+
+  test('accepts snake_case parameters', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const result = await generateAccessToken(snakeCaseParams)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  test('sends correct form data with snake_case input params', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(snakeCaseParams)
+
+    const callArgs = fetch.mock.calls[0][1]
+    const body = callArgs.body
+
+    expect(body).toContain('client_id=test-client-id')
+    expect(body).toContain('client_secret=test-client-secret')
+    expect(body).toContain('org_id=test-org-id')
+  })
+
+  test('uses stage IMS URL when imsEnv is stage', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(snakeCaseParams, 'stage')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('uses prod IMS URL by default', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(snakeCaseParams)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+})
+
+describe('generateAccessToken - imsEnv parameter', () => {
+  const validParams = {
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+    orgId: 'test-org-id',
+    scopes: ['openid']
+  }
+
+  const mockSuccessResponse = {
+    access_token: 'test-access-token',
+    token_type: 'bearer',
+    expires_in: 86399
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invalidateCache()
+  })
+
+  test('uses stage IMS URL when imsEnv is stage', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validParams, 'stage')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1-stg1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('uses prod IMS URL when imsEnv is prod', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validParams, 'prod')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('defaults to prod IMS URL when imsEnv not provided', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validParams)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+
+  test('uses prod IMS URL for unknown imsEnv values', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    await generateAccessToken(validParams, 'unknown')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://ims-na1.adobelogin.com/ims/token/v2',
+      expect.any(Object)
+    )
+  })
+})
+
+describe('generateAccessToken - BAD_CREDENTIALS_FORMAT error', () => {
+  test('throws BAD_CREDENTIALS_FORMAT when params is null', async () => {
+    await expect(generateAccessToken(null))
+      .rejects
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is undefined', async () => {
+    await expect(generateAccessToken(undefined))
+      .rejects
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is an array', async () => {
+    await expect(generateAccessToken(['test']))
+      .rejects
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('throws BAD_CREDENTIALS_FORMAT when params is a string', async () => {
+    await expect(generateAccessToken('test'))
+      .rejects
+      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+  })
+
+  test('BAD_CREDENTIALS_FORMAT error includes sdk details', async () => {
+    let error
+    try {
+      await generateAccessToken(null)
+    } catch (e) {
+      error = e
+    }
+
+    expect(error.name).toBe('AuthSDKError')
+    expect(error.code).toBe('BAD_CREDENTIALS_FORMAT')
+    expect(error.sdkDetails).toBeDefined()
+    expect(error.sdkDetails.paramsType).toBe('object') // typeof null === 'object'
   })
 })

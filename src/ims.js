@@ -9,7 +9,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { codes } from './AuthErrors.js'
+import { codes } from './errors.js'
 
 /**
  * IMS Base URLs
@@ -21,11 +21,11 @@ const IMS_BASE_URL_STAGE = 'https://ims-na1-stg1.adobelogin.com'
  * Gets the IMS base URL based on the environment
  *
  * @private
- * @param {string} environment - The environment ('prod' or 'stage')
+ * @param {string} env - The environment ('prod' or 'stage')
  * @returns {string} The IMS base URL
  */
-function getImsUrl (environment) {
-  return environment === 'stage' ? IMS_BASE_URL_STAGE : IMS_BASE_URL_PROD
+function getImsUrl (env) {
+  return env === 'stage' ? IMS_BASE_URL_STAGE : IMS_BASE_URL_PROD
 }
 
 /**
@@ -33,17 +33,39 @@ function getImsUrl (environment) {
  *
  * @private
  * @param {object} params - Parameters to validate
- * @param {string} params.clientId - The client ID
- * @param {string} params.clientSecret - The client secret
- * @param {string} params.orgId - The organization ID
- * @param {string[]} params.scopes - Array of scopes
+ * @returns {object} Validated credentials object
  * @throws {Error} If any required parameters are missing
  */
-function validateClientCredentialsParams ({ clientId, clientSecret, orgId, scopes }) {
+export function getAndValidateCredentials (params) {
+  if (!(typeof params === 'object' && params !== null && !Array.isArray(params))) {
+    throw new codes.BAD_CREDENTIALS_FORMAT({
+      sdkDetails: { paramsType: typeof params }
+    })
+  }
+
+  if (params.scopes && !Array.isArray(params.scopes)) {
+    throw new codes.BAD_SCOPES_FORMAT({
+      sdkDetails: { scopesType: typeof params.scopes }
+    })
+  }
+
+  const credentials = {}
+  credentials.clientId = params.clientId || params.client_id
+  credentials.clientSecret = params.clientSecret || params.client_secret
+  credentials.orgId = params.orgId || params.org_id
+  credentials.scopes = params.scopes || []
+
+  const { clientId, clientSecret, orgId, scopes } = credentials
   const missingParams = []
-  if (!clientId) missingParams.push('clientId')
-  if (!clientSecret) missingParams.push('clientSecret')
-  if (!orgId) missingParams.push('orgId')
+  if (!clientId) {
+    missingParams.push('clientId')
+  }
+  if (!clientSecret) {
+    missingParams.push('clientSecret')
+  }
+  if (!orgId) {
+    missingParams.push('orgId')
+  }
 
   if (missingParams.length > 0) {
     throw new codes.MISSING_PARAMETERS({
@@ -51,6 +73,8 @@ function validateClientCredentialsParams ({ clientId, clientSecret, orgId, scope
       sdkDetails: { clientId, orgId, scopes }
     })
   }
+
+  return credentials
 }
 
 /**
@@ -65,10 +89,8 @@ function validateClientCredentialsParams ({ clientId, clientSecret, orgId, scope
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], environment = 'prod' }) {
-  validateClientCredentialsParams({ clientId, clientSecret, orgId, scopes })
-
-  const imsBaseUrl = getImsUrl(environment)
+export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
+  const imsBaseUrl = getImsUrl(env)
 
   // Prepare form data using URLSearchParams (native Node.js)
   const formData = new URLSearchParams()

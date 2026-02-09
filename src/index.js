@@ -9,26 +9,28 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { getAccessTokenByClientCredentials } from './ims.js'
+import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
 import TTLCache from '@isaacs/ttlcache'
+import crypto from 'crypto'
 
 // Token cache with TTL
-// Opinionated for now, we could make it confiurable in the future if needed -mg
+// Opinionated for now, we could make it configurable in the future if needed -mg
 const tokenCache = new TTLCache({ ttl: 5 * 60 * 1000 }) // 5 minutes in milliseconds
 
 /**
  * Generates a cache key for token storage
  *
  * @private
- * @param {string} clientId - The client ID
- * @param {string} orgId - The organization ID
- * @param {string} environment - The environment
- * @param {string[]} scopes - Array of scopes
+ * @param {object} credentials - The credentials object
+ * @param {string} credentials.clientId - The client ID
+ * @param {string} credentials.orgId - The organization ID
+ * @param {string} credentials.env - The env
+ * @param {string[]} credentials.scopes - Array of scopes
  * @returns {string} The cache key
  */
-function getCacheKey (clientId, orgId, environment, scopes) {
+function getCacheKey ({clientId, orgId, env, scopes, clientSecret}) {
   const scopeKey = scopes.length > 0 ? scopes.sort().join(',') : 'none'
-  return `${clientId}:${orgId}:${environment}:${scopeKey}`
+  return crypto.createHash('sha1').update(`${clientId}:${orgId}:${scopeKey}:${clientSecret}:${env}`).digest('hex')
 }
 
 /**
@@ -48,20 +50,24 @@ export function invalidateCache () {
  * @param {string} params.clientSecret - The client secret
  * @param {string} params.orgId - The organization ID
  * @param {string[]} [params.scopes=[]] - Array of scopes to request
- * @param {string} [params.environment='prod'] - The IMS environment ('prod' or 'stage')
+ * @param {string} [imsEnv='prod'] - The IMS environment ('prod' or 'stage')
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function generateAccessToken ({ clientId, clientSecret, orgId, scopes = [], environment = 'prod' }) {
+export async function generateAccessToken (params, imsEnv = 'prod' ) {
+  const credentials = getAndValidateCredentials(params)
+
+  const credAndEnv = { ...credentials, env: imsEnv }
+
   // Check cache first
-  const cacheKey = getCacheKey(clientId, orgId, environment, scopes)
+  const cacheKey = getCacheKey(credAndEnv)
   const cachedToken = tokenCache.get(cacheKey)
   if (cachedToken) {
     return cachedToken
   }
 
   // Get token from IMS
-  const token = await getAccessTokenByClientCredentials({ clientId, clientSecret, orgId, scopes, environment })
+  const token = await getAccessTokenByClientCredentials(credAndEnv)
 
   // Cache the token
   tokenCache.set(cacheKey, token)

@@ -40,6 +40,8 @@ const E = ErrorWrapper(
 // Error codes
 E('IMS_TOKEN_ERROR', 'Error calling IMS to get access token: %s')
 E('MISSING_PARAMETERS', 'Missing required parameters: %s')
+E('BAD_CREDENTIALS_FORMAT', 'Credentials must be either an object or a stringified object')
+E('BAD_SCOPES_FORMAT', 'Scopes must be an array')
 E('GENERIC_ERROR', 'An unexpected error occurred: %s')
 
 export { codes, messages }
