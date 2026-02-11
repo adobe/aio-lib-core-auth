@@ -3,17 +3,23 @@
   "version": "1.0.0",
   "description": "Adobe I/O Core Authentication Library",
   "type": "module",
-  "main": "src/index.js",
+  "main": "cjs/index.cjs",
   "types": "types.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.js",
-      "types": "./types.d.ts",
-      "require": "./src/index.js",
-      "default": "./src/index.js"
+      "require": "./cjs/index.cjs"
     }
   },
+  "files": [
+    "src",
+    "cjs",
+    "types.d.ts"
+  ],
+  "pre-commit": "pre-commit",
   "scripts": {
+    "build": "node scripts/build-cjs.js",
+    "pre-commit": "npm run build && git add cjs",
     "test": "vitest run --coverage",
     "lint": "eslint src test",
     "generate-docs": "jsdoc2md src/*.js > doc/api.md"
@@ -42,6 +48,8 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
+    "@fastify/pre-commit": "^2.2.0",
     "@adobe/eslint-config-aio-lib-config": "^3.0.0",
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^8.57.0",
