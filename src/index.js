@@ -9,9 +9,10 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
-import { TTLCache } from '@isaacs/ttlcache'
-import crypto from 'crypto'
+const { getAccessTokenByClientCredentials, getAndValidateCredentials } = require('./ims.js')
+const { codes, messages } = require('./errors.js')
+const { TTLCache } = require('@isaacs/ttlcache')
+const crypto = require('crypto')
 
 // Token cache with TTL
 // Opinionated for now, we could make it configurable in the future if needed -mg
@@ -38,7 +39,7 @@ function getCacheKey ({clientId, orgId, env, scopes, clientSecret}) {
  *
  * @returns {void}
  */
-export function invalidateCache () {
+function invalidateCache () {
   tokenCache.clear()
 }
 
@@ -54,7 +55,7 @@ export function invalidateCache () {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function generateAccessToken (params, imsEnv) {
+async function generateAccessToken (params, imsEnv) {
   imsEnv = imsEnv || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
 
   const credentials = getAndValidateCredentials(params)
@@ -79,4 +80,13 @@ export async function generateAccessToken (params, imsEnv) {
 
 function ioRuntimeStageNamespace () {
   return process.env.__OW_NAMESPACE && process.env.__OW_NAMESPACE.startsWith('development-')
+}
+
+module.exports = {
+  invalidateCache,
+  generateAccessToken,
+  getAccessTokenByClientCredentials,
+  getAndValidateCredentials,
+  codes,
+  messages
 }

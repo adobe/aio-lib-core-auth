@@ -9,7 +9,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { codes } from './errors.js'
+const { codes } = require('./errors.js')
 
 /**
  * IMS Base URLs
@@ -36,7 +36,7 @@ function getImsUrl (env) {
  * @returns {object} Validated credentials object
  * @throws {Error} If any required parameters are missing
  */
-export function getAndValidateCredentials (params) {
+function getAndValidateCredentials (params) {
   if (!(typeof params === 'object' && params !== null && !Array.isArray(params))) {
     throw new codes.BAD_CREDENTIALS_FORMAT({
       sdkDetails: { paramsType: typeof params }
@@ -89,7 +89,7 @@ export function getAndValidateCredentials (params) {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
+async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
   const imsBaseUrl = getImsUrl(env)
 
   // Prepare form data using URLSearchParams (native Node.js)
@@ -153,4 +153,9 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
       }
     })
   }
+}
+
+module.exports = {
+  getAndValidateCredentials,
+  getAccessTokenByClientCredentials
 }

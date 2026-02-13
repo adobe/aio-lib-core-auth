@@ -2,14 +2,12 @@
   "name": "@adobe/aio-lib-core-auth",
   "version": "1.0.0",
   "description": "Adobe I/O Core Authentication Library",
-  "type": "module",
   "main": "src/index.js",
   "types": "types.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js",
-      "types": "./types.d.ts",
       "require": "./src/index.js",
+      "types": "./types.d.ts",
       "default": "./src/index.js"
     }
   },

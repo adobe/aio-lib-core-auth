@@ -10,8 +10,7 @@ governing permissions and limitations under the License.
 */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { generateAccessToken, invalidateCache } from '../src/index.js'
-import { codes } from '../src/errors.js'
+import { generateAccessToken, invalidateCache, codes } from '../src/index.js'
 
 // Mock fetch globally
 global.fetch = vi.fn()
