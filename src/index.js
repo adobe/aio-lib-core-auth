@@ -9,10 +9,13 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { getAccessTokenByClientCredentials, getAndValidateCredentials } from './ims.js'
-import { TTLCache } from '@isaacs/ttlcache'
-import crypto from 'crypto'
-import { IMS_ENV_INPUT, IMS_OAUTH_S2S_INPUT } from './constants.js'
+const { getAccessTokenByClientCredentials, getAndValidateCredentials } = require('./ims.js')
+const { TTLCache } = require('@isaacs/ttlcache')
+const crypto = require('crypto')
+
+// include-ims-credentials annotation input keys (keep in sync with src/constants.js)
+const IMS_OAUTH_S2S_INPUT = '__ims_oauth_s2s'
+const IMS_ENV_INPUT = '__ims_env'
 
 // Token cache with TTL
 // Opinionated for now, we could make it configurable in the future if needed -mg
@@ -39,7 +42,7 @@ function getCacheKey ({clientId, orgId, env, scopes, clientSecret}) {
  *
  * @returns {void}
  */
-export function invalidateCache () {
+function invalidateCache () {
   tokenCache.clear()
 }
 
@@ -55,7 +58,7 @@ export function invalidateCache () {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function generateAccessToken (params, imsEnv) {
+async function generateAccessToken (params, imsEnv) {
   // integrate with the runtime environment and include-ims-credentials annotation
   imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
 
@@ -92,4 +95,9 @@ export async function generateAccessToken (params, imsEnv) {
 
 function ioRuntimeStageNamespace () {
   return process.env.__OW_NAMESPACE && process.env.__OW_NAMESPACE.startsWith('development-')
+}
+
+module.exports = {
+  invalidateCache,
+  generateAccessToken
 }

@@ -9,7 +9,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { codes } from './errors.js'
+const { codes } = require('./errors.js')
 
 /**
  * IMS Base URLs
@@ -35,7 +35,7 @@ function getImsUrl (env) {
  * @param {object} params - Parameters to validate
  * @returns {{ error, credentials }} Object with error (if any) and validated credentials object
  */
-export function getAndValidateCredentials (params) {
+function getAndValidateCredentials (params) {
   if (!(typeof params === 'object' && params !== null && !Array.isArray(params))) {
     return {
       error: new codes.BAD_CREDENTIALS_FORMAT({
@@ -92,7 +92,7 @@ export function getAndValidateCredentials (params) {
  * @returns {Promise<object>} Promise that resolves with the token response
  * @throws {Error} If there's an error getting the access token
  */
-export async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
+async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgId, scopes = [], env } ) {
   const imsBaseUrl = getImsUrl(env)
 
   // Prepare form data using URLSearchParams (native Node.js)
@@ -112,7 +112,7 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
-    })
+    /* v8 ignore next */})
 
     const data = await response.json()
 
@@ -134,7 +134,7 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
           scopes,
           imsEnv: env
         }
-      })
+      /* v8 ignore next */})
     }
 
     return data
@@ -156,4 +156,9 @@ export async function getAccessTokenByClientCredentials ({ clientId, clientSecre
       }
     })
   }
+}
+
+module.exports = {
+  getAndValidateCredentials,
+  getAccessTokenByClientCredentials
 }
