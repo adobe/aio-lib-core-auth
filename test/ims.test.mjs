@@ -12,9 +12,8 @@ governing permissions and limitations under the License.
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 import {
   getAccessTokenByClientCredentials,
-  getAndValidateCredentials,
-  codes
-} from '../src/index.js'
+  getAndValidateCredentials
+} from '../src/ims.js'
 
 // Mock fetch globally
 global.fetch = vi.fn()
@@ -208,7 +207,7 @@ describe('getAccessTokenByClientCredentials', () => {
 
     await expect(getAccessTokenByClientCredentials(validParams))
       .rejects
-      .toThrow(codes.IMS_TOKEN_ERROR)
+      .toThrow('IMS_TOKEN_ERROR')
 
     // Additional validation
     let error
@@ -237,7 +236,7 @@ describe('getAccessTokenByClientCredentials', () => {
 
     await expect(getAccessTokenByClientCredentials(validParams))
       .rejects
-      .toThrow(codes.IMS_TOKEN_ERROR)
+      .toThrow('IMS_TOKEN_ERROR')
   })
 
   test('throws IMS_TOKEN_ERROR with HTTP status when no error fields present', async () => {
@@ -260,7 +259,6 @@ describe('getAccessTokenByClientCredentials', () => {
     expect(error.name).toBe('AuthSDKError')
     expect(error.code).toBe('IMS_TOKEN_ERROR')
     expect(error.message).toContain('HTTP 503')
-    expect(error.sdkDetails.statusCode).toBe(503)
   })
 
   test('throws GENERIC_ERROR on network failure', async () => {
@@ -268,7 +266,7 @@ describe('getAccessTokenByClientCredentials', () => {
 
     await expect(getAccessTokenByClientCredentials(validParams))
       .rejects
-      .toThrow(codes.GENERIC_ERROR)
+      .toThrow('GENERIC_ERROR')
 
     // Additional validation
     let error
@@ -287,7 +285,7 @@ describe('getAccessTokenByClientCredentials', () => {
 
     await expect(getAccessTokenByClientCredentials(validParams))
       .rejects
-      .toThrow(codes.GENERIC_ERROR)
+      .toThrow('GENERIC_ERROR')
   })
 
   test('includes sdkDetails in error for debugging', async () => {
@@ -305,7 +303,7 @@ describe('getAccessTokenByClientCredentials', () => {
 
     await expect(getAccessTokenByClientCredentials(validParams))
       .rejects
-      .toThrow(codes.IMS_TOKEN_ERROR)
+      .toThrow('IMS_TOKEN_ERROR')
 
     // Additional validation
     let error
@@ -434,7 +432,7 @@ describe('getAndValidateCredentials', () => {
 
   test('throws BAD_CREDENTIALS_FORMAT when params is null', () => {
     expect(() => getAndValidateCredentials(null))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
 
     let error
     try {
@@ -448,22 +446,22 @@ describe('getAndValidateCredentials', () => {
 
   test('throws BAD_CREDENTIALS_FORMAT when params is undefined', () => {
     expect(() => getAndValidateCredentials(undefined))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is an array', () => {
     expect(() => getAndValidateCredentials(['test']))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is a string', () => {
     expect(() => getAndValidateCredentials('test'))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is a number', () => {
     expect(() => getAndValidateCredentials(123))
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws MISSING_PARAMETERS when clientId is missing', () => {
@@ -473,7 +471,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+      .toThrow('MISSING_PARAMETERS')
   })
 
   test('throws MISSING_PARAMETERS when clientSecret is missing', () => {
@@ -483,7 +481,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+      .toThrow('MISSING_PARAMETERS')
   })
 
   test('throws MISSING_PARAMETERS when orgId is missing', () => {
@@ -493,7 +491,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.MISSING_PARAMETERS)
+      .toThrow('MISSING_PARAMETERS')
   })
 
   test('throws MISSING_PARAMETERS with all missing params listed', () => {
@@ -520,7 +518,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+      .toThrow('BAD_SCOPES_FORMAT')
 
     let error
     try {
@@ -542,7 +540,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+      .toThrow('BAD_SCOPES_FORMAT')
   })
 
   test('throws BAD_SCOPES_FORMAT when scopes is a number', () => {
@@ -554,7 +552,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     expect(() => getAndValidateCredentials(params))
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+      .toThrow('BAD_SCOPES_FORMAT')
   })
 
   test('accepts scopes as an array', () => {

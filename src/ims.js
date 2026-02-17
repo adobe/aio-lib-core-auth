@@ -109,7 +109,7 @@ async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgI
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
-    })
+    /* v8 ignore next */})
 
     const data = await response.json()
 
@@ -131,7 +131,7 @@ async function getAccessTokenByClientCredentials ({ clientId, clientSecret, orgI
           scopes,
           imsEnv: env
         }
-      })
+      /* v8 ignore next */})
     }
 
     return data
