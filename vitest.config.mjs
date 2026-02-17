@@ -15,9 +15,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./test/vitest.setup.js'],
+    setupFiles: ['./test/vitest.setup.mjs'],
     exclude: ['node_modules'],
-    include: ['test/**/*.test.js'],
+    include: ['test/**/*.test.mjs'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

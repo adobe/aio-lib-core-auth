@@ -9,7 +9,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-import { AioCoreSDKErrorWrapper } from '@adobe/aio-lib-core-errors'
+const { AioCoreSDKErrorWrapper } = require('@adobe/aio-lib-core-errors')
 const { ErrorWrapper, createUpdater } = AioCoreSDKErrorWrapper
 
 const codes = {}
@@ -44,4 +44,4 @@ E('BAD_CREDENTIALS_FORMAT', 'Credentials must be either an object or a stringifi
 E('BAD_SCOPES_FORMAT', 'Scopes must be an array')
 E('GENERIC_ERROR', 'An unexpected error occurred: %s')
 
-export { codes, messages }
+module.exports = { codes, messages }

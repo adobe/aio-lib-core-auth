@@ -60,7 +60,7 @@ describe('generateAccessToken', () => {
   test('throws same errors as getAccessTokenByClientCredentials', async () => {
     await expect(generateAccessToken({}))
       .rejects
-      .toThrow(codes.MISSING_PARAMETERS)
+      .toThrow('MISSING_PARAMETERS')
   })
 })
 
@@ -215,13 +215,13 @@ describe('generateAccessToken - with caching', () => {
     // First call - should fail
     await expect(generateAccessToken(validParams))
       .rejects
-      .toThrow(codes.IMS_TOKEN_ERROR)
+      .toThrow('IMS_TOKEN_ERROR')
     expect(fetch).toHaveBeenCalledTimes(1)
 
     // Second call - should try again (not cached)
     await expect(generateAccessToken(validParams))
       .rejects
-      .toThrow(codes.IMS_TOKEN_ERROR)
+      .toThrow('IMS_TOKEN_ERROR')
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 })
@@ -247,7 +247,7 @@ describe('generateAccessToken - BAD_SCOPES_FORMAT error', () => {
 
     await expect(generateAccessToken(params))
       .rejects
-      .toThrow(codes.BAD_SCOPES_FORMAT)
+      .toThrow('BAD_SCOPES_FORMAT')
   })
 })
 
@@ -533,25 +533,25 @@ describe('generateAccessToken - BAD_CREDENTIALS_FORMAT error', () => {
   test('throws BAD_CREDENTIALS_FORMAT when params is null', async () => {
     await expect(generateAccessToken(null))
       .rejects
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is undefined', async () => {
     await expect(generateAccessToken(undefined))
       .rejects
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is an array', async () => {
     await expect(generateAccessToken(['test']))
       .rejects
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('throws BAD_CREDENTIALS_FORMAT when params is a string', async () => {
     await expect(generateAccessToken('test'))
       .rejects
-      .toThrow(codes.BAD_CREDENTIALS_FORMAT)
+      .toThrow('BAD_CREDENTIALS_FORMAT')
   })
 
   test('BAD_CREDENTIALS_FORMAT error includes sdk details', async () => {
@@ -565,6 +565,6 @@ describe('generateAccessToken - BAD_CREDENTIALS_FORMAT error', () => {
     expect(error.name).toBe('AuthSDKError')
     expect(error.code).toBe('BAD_CREDENTIALS_FORMAT')
     expect(error.sdkDetails).toBeDefined()
-    expect(error.sdkDetails.paramsType).toBe('object') // typeof null === 'object'
+    expect(error.sdkDetails.paramsType).toBe('object')
   })
 })
