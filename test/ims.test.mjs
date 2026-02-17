@@ -269,6 +269,28 @@ describe('getAccessTokenByClientCredentials', () => {
     expect(error.name).toBe('AuthSDKError')
     expect(error.code).toBe('IMS_TOKEN_ERROR')
     expect(error.message).toContain('HTTP 503')
+    expect(error.sdkDetails.statusCode).toBe(503)
+  })
+
+  test('does not cache - always makes fresh API calls', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    // First call
+    await getAccessTokenByClientCredentials(validParams)
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    // Second call - should make another API call (no cache)
+    await getAccessTokenByClientCredentials(validParams)
+    expect(fetch).toHaveBeenCalledTimes(2)
+
+    // Third call - should make another API call (no cache)
+    await getAccessTokenByClientCredentials(validParams)
+    expect(fetch).toHaveBeenCalledTimes(3)
   })
 
   test('throws GENERIC_ERROR on network failure', async () => {
@@ -442,6 +464,7 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
+    expect(result.error).toBeNull()
     expect(result.credentials.clientId).toBe('camel-client-id')
     expect(result.credentials.clientSecret).toBe('camel-secret')
     expect(result.credentials.orgId).toBe('camel-org-id')
@@ -456,6 +479,7 @@ describe('getAndValidateCredentials', () => {
 
     const result = getAndValidateCredentials(params)
 
+    expect(result.error).toBeNull()
     expect(result.credentials.scopes).toEqual([])
   })
 
@@ -596,6 +620,7 @@ describe('getAndValidateCredentials', () => {
     }
 
     const result = getAndValidateCredentials(params)
+    expect(result.error).toBeNull()
     expect(result.credentials.scopes).toEqual(['openid', 'profile'])
   })
 })
