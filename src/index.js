@@ -84,9 +84,5 @@ function ioRuntimeStageNamespace () {
 
 module.exports = {
   invalidateCache,
-  generateAccessToken,
-  getAccessTokenByClientCredentials,
-  getAndValidateCredentials,
-  codes,
-  messages
+  generateAccessToken
 }

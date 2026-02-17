@@ -21,7 +21,7 @@
 <dt><a href="#invalidateCache">invalidateCache()</a> ⇒ <code>void</code></dt>
 <dd><p>Invalidates the token cache</p>
 </dd>
-<dt><a href="#generateAccessToken">generateAccessToken(params)</a> ⇒ <code>Promise.&lt;object&gt;</code></dt>
+<dt><a href="#generateAccessToken">generateAccessToken(params, [imsEnv])</a> ⇒ <code>Promise.&lt;object&gt;</code></dt>
 <dd><p>Generates an access token for authentication (with caching)</p>
 </dd>
 </dl>
@@ -73,7 +73,7 @@ Invalidates the token cache
 **Kind**: global function  
 <a name="generateAccessToken"></a>
 
-## generateAccessToken(params) ⇒ <code>Promise.&lt;object&gt;</code>
+## generateAccessToken(params, [imsEnv]) ⇒ <code>Promise.&lt;object&gt;</code>
 Generates an access token for authentication (with caching)
 
 **Kind**: global function  
@@ -90,5 +90,5 @@ Generates an access token for authentication (with caching)
 | params.clientSecret | <code>string</code> |  | The client secret |
 | params.orgId | <code>string</code> |  | The organization ID |
 | [params.scopes] | <code>Array.&lt;string&gt;</code> | <code>[]</code> | Array of scopes to request |
-| [params.environment] | <code>string</code> | <code>&quot;&#x27;prod&#x27;&quot;</code> | The IMS environment ('prod' or 'stage') |
+| [imsEnv] | <code>string</code> |  | The IMS environment ('prod' or 'stage'); when omitted or falsy, uses stage if __OW_NAMESPACE starts with 'development-', else prod |
 

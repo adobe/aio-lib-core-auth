@@ -4,13 +4,6 @@
   "description": "Adobe I/O Core Authentication Library",
   "main": "src/index.js",
   "types": "types.d.ts",
-  "exports": {
-    ".": {
-      "require": "./src/index.js",
-      "types": "./types.d.ts",
-      "default": "./src/index.js"
-    }
-  },
   "scripts": {
     "test": "vitest run --coverage",
     "lint": "eslint src test",
