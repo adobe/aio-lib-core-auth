@@ -41,10 +41,10 @@ async function main(params) {
 
     // otherwise credentials can be passed manually
     const token = await generateAccessToken({
-      clientId,
-      clientSecret,
-      orgId,
-      scopes
+      clientId: '<clientId>',
+      clientSecret: '<clientSecret>',
+      orgId: '<orgId>@AdobeOrg',
+      scopes: ['<scope1>', '<scope2>', '..']
     })
 
     console.log('Authentication successful:', token.access_token)
