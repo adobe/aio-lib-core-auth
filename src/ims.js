@@ -33,20 +33,23 @@ function getImsUrl (env) {
  *
  * @private
  * @param {object} params - Parameters to validate
- * @returns {object} Validated credentials object
- * @throws {Error} If any required parameters are missing
+ * @returns {{ error, credentials }} Object with error (if any) and validated credentials object
  */
 function getAndValidateCredentials (params) {
   if (!(typeof params === 'object' && params !== null && !Array.isArray(params))) {
-    throw new codes.BAD_CREDENTIALS_FORMAT({
-      sdkDetails: { paramsType: typeof params }
-    })
+    return {
+      error: new codes.BAD_CREDENTIALS_FORMAT({
+        sdkDetails: { paramsType: typeof params }
+      })
+    }
   }
 
   if (params.scopes && !Array.isArray(params.scopes)) {
-    throw new codes.BAD_SCOPES_FORMAT({
-      sdkDetails: { scopesType: typeof params.scopes }
-    })
+    return {
+      error: new codes.BAD_SCOPES_FORMAT({
+        sdkDetails: { scopesType: typeof params.scopes }
+      })
+    }
   }
 
   const credentials = {}
@@ -68,13 +71,13 @@ function getAndValidateCredentials (params) {
   }
 
   if (missingParams.length > 0) {
-    throw new codes.MISSING_PARAMETERS({
+    return { error: new codes.MISSING_PARAMETERS({
       messageValues: missingParams.join(', '),
       sdkDetails: { clientId, orgId, scopes }
-    })
+    }) }
   }
 
-  return credentials
+  return { credentials, error: null }
 }
 
 /**

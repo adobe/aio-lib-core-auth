@@ -10,9 +10,12 @@ governing permissions and limitations under the License.
 */
 
 const { getAccessTokenByClientCredentials, getAndValidateCredentials } = require('./ims.js')
-const { codes, messages } = require('./errors.js')
 const { TTLCache } = require('@isaacs/ttlcache')
 const crypto = require('crypto')
+
+// include-ims-credentials annotation input keys (keep in sync with src/constants.js)
+const IMS_OAUTH_S2S_INPUT = '__ims_oauth_s2s'
+const IMS_ENV_INPUT = '__ims_env'
 
 // Token cache with TTL
 // Opinionated for now, we could make it configurable in the future if needed -mg
@@ -56,9 +59,21 @@ function invalidateCache () {
  * @throws {Error} If there's an error getting the access token
  */
 async function generateAccessToken (params, imsEnv) {
-  imsEnv = imsEnv || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
+  // integrate with the runtime environment and include-ims-credentials annotation
+  imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
 
-  const credentials = getAndValidateCredentials(params)
+  let credentials
+
+  // get parameters from params in priority otherwise try to load the credentials set to params.__ims_oauth_s2s by the annotation
+  const fromParams = getAndValidateCredentials(params)
+  credentials = fromParams.credentials
+  if (fromParams.error) {
+    const fromAnnotation = getAndValidateCredentials(params?.[IMS_OAUTH_S2S_INPUT])
+    if (fromAnnotation.error) {
+      throw fromParams.error // still throw original error
+    }
+    credentials = fromAnnotation.credentials
+  }
 
   const credAndEnv = { ...credentials, env: imsEnv }
 

@@ -36,13 +36,17 @@ const { generateAccessToken } = require('@adobe/aio-lib-core-auth')
 
 async function main(params) {
   try {
-    // Note: Will cache for 5 min
+    // if the include-ims-credentials annotation is set, the library infers credentials from the Runtime params
+    const token = await generateAccessToken(params)
+
+    // otherwise credentials can be passed manually
     const token = await generateAccessToken({
-      clientId: params.IMS_CLIENT_ID,
-      clientSecret: params.IMS_CLIENT_SECRET,
-      orgId: params.IMS_ORG_ID,
-      scopes: params.IMS_SCOPES,
+      clientId: '<clientId>',
+      clientSecret: '<clientSecret>',
+      orgId: '<orgId>@AdobeOrg',
+      scopes: ['<scope1>', '<scope2>', '..']
     })
+
     console.log('Authentication successful:', token.access_token)
   } catch (error) {
     console.error('Authentication failed:', error)
@@ -50,7 +54,7 @@ async function main(params) {
 }
 ```
 
-Note: The token is cached in the Runtime's container memory, a single Runtime action can run in multiple containers.
+Note: The token is cached for 5 minutes in the Runtime's container memory. A single Runtime action can run in multiple containers, meaning the cache is not shared across actions.
 
 ### Invalidating the Token Cache in a Runtime action
 

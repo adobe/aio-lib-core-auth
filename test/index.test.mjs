@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import { generateAccessToken, invalidateCache } from '../src/index.js'
-import { codes } from '../src/errors.js'
+import { IMS_OAUTH_S2S_INPUT } from '../src/constants.js'
 
 // Mock fetch globally
 global.fetch = vi.fn()
@@ -61,6 +61,37 @@ describe('generateAccessToken', () => {
     await expect(generateAccessToken({}))
       .rejects
       .toThrow('MISSING_PARAMETERS')
+  })
+
+  test('uses credentials from include-ims-credentials annotation when params has no direct credentials', async () => {
+    const annotationCredentials = {
+      clientId: 'annotation-client-id',
+      clientSecret: 'annotation-client-secret',
+      orgId: 'annotation-org-id',
+      scopes: ['openid']
+    }
+    const mockSuccessResponse = {
+      access_token: 'annotation-token',
+      token_type: 'bearer',
+      expires_in: 86399
+    }
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: createMockHeaders(),
+      json: async () => mockSuccessResponse
+    })
+
+    const params = { [IMS_OAUTH_S2S_INPUT]: annotationCredentials }
+    const result = await generateAccessToken(params)
+
+    expect(result).toEqual(mockSuccessResponse)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    const callArgs = fetch.mock.calls[0][1]
+    expect(callArgs.body).toContain('client_id=annotation-client-id')
+    expect(callArgs.body).toContain('client_secret=annotation-client-secret')
+    expect(callArgs.body).toContain('org_id=annotation-org-id')
   })
 })
 
