@@ -43,7 +43,7 @@
     "eslint-plugin-promise": "^6.1.1",
     "jsdoc-to-markdown": "^8.0.0",
     "stdout-stderr": "^0.1.13",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@adobe/aio-lib-core-errors": "^4.0.0",
