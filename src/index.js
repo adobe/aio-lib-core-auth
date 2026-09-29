@@ -47,20 +47,24 @@ function invalidateCache () {
 }
 
 /**
- * Generates an access token for authentication (with caching)
+ * Resolves credentials and environment from token params, without requesting a token.
  *
- * @param {object} params - Parameters for token generation
- * @param {string} params.clientId - The client ID
- * @param {string} params.clientSecret - The client secret
- * @param {string} params.orgId - The organization ID
+ * Credentials are resolved in order: direct params (camelCase or snake_case), then __ims_oauth_s2s if direct credentials are absent.
+ * Environment is resolved in order: imsEnv argument, then params.__ims_env, then 'stage' if __OW_NAMESPACE starts with 'development-', otherwise 'prod'.
+ *
+ * @param {object} params - Token parameters; must include camelCase credentials, snake_case credentials, or an __ims_oauth_s2s annotation object
+ * @param {string} params.clientId - The client ID (camelCase form; alternatively client_id)
+ * @param {string} params.clientSecret - The client secret (camelCase form; alternatively client_secret)
+ * @param {string} params.orgId - The organization ID (camelCase form; alternatively org_id)
  * @param {string[]} [params.scopes=[]] - Array of scopes to request
+ * @param {object} [params.__ims_oauth_s2s] - Credentials injected by the include-ims-credentials annotation
  * @param {string} [imsEnv] - The IMS environment ('prod' or 'stage'); when omitted or falsy, uses stage if __OW_NAMESPACE starts with 'development-', else prod
- * @returns {Promise<object>} Promise that resolves with the token response
- * @throws {Error} If there's an error getting the access token
+ * @returns {{ credentials: object, env: string }} The resolved, normalized credentials and environment
+ * @throws {Error} If no valid credentials can be resolved
  */
-async function generateAccessToken (params, imsEnv) {
+function resolveCredentials (params, imsEnv) {
   // integrate with the runtime environment and include-ims-credentials annotation
-  imsEnv = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
+  const env = imsEnv || params?.[IMS_ENV_INPUT] || (ioRuntimeStageNamespace() ? 'stage' : 'prod')
 
   let credentials
 
@@ -75,7 +79,45 @@ async function generateAccessToken (params, imsEnv) {
     credentials = fromAnnotation.credentials
   }
 
-  const credAndEnv = { ...credentials, env: imsEnv }
+  return { credentials, env }
+}
+
+/**
+ * Checks whether the given value is an already-resolved { credentials, env } object,
+ * as returned by resolveCredentials, rather than raw token params.
+ *
+ * @private
+ * @param {object} params - Value to check
+ * @returns {boolean} True if params looks like a ResolvedAuth object
+ */
+function isResolvedAuth (params) {
+  return typeof params === 'object' && params !== null &&
+    'credentials' in params && 'env' in params
+}
+
+/**
+ * Generates an access token for authentication (with caching)
+ *
+ * Accepts either raw token params or an already-resolved { credentials, env } object
+ * (as returned by resolveCredentials). When a resolved object is passed, imsEnv is ignored.
+ *
+ * Credentials are resolved in order: direct params (camelCase or snake_case), then __ims_oauth_s2s if direct credentials are absent.
+ * Environment is resolved in order: imsEnv argument, then params.__ims_env, then 'stage' if __OW_NAMESPACE starts with 'development-', otherwise 'prod'.
+ *
+ * @param {object} params - Token parameters (camelCase credentials, snake_case credentials, or an __ims_oauth_s2s annotation object), or an already-resolved { credentials, env } object
+ * @param {string} params.clientId - The client ID (camelCase form; alternatively client_id)
+ * @param {string} params.clientSecret - The client secret (camelCase form; alternatively client_secret)
+ * @param {string} params.orgId - The organization ID (camelCase form; alternatively org_id)
+ * @param {string[]} [params.scopes=[]] - Array of scopes to request
+ * @param {object} [params.__ims_oauth_s2s] - Credentials injected by the include-ims-credentials annotation
+ * @param {string} [imsEnv] - The IMS environment ('prod' or 'stage'); when omitted or falsy, uses stage if __OW_NAMESPACE starts with 'development-', else prod; ignored when params is an already-resolved object
+ * @returns {Promise<object>} Promise that resolves with the token response
+ * @throws {Error} If there's an error getting the access token
+ */
+async function generateAccessToken (params, imsEnv) {
+  const { credentials, env } = isResolvedAuth(params) ? params : resolveCredentials(params, imsEnv)
+
+  const credAndEnv = { ...credentials, env }
 
   // Check cache first
   const cacheKey = getCacheKey(credAndEnv)
@@ -99,5 +141,6 @@ function ioRuntimeStageNamespace () {
 
 module.exports = {
   invalidateCache,
-  generateAccessToken
+  generateAccessToken,
+  resolveCredentials
 }
